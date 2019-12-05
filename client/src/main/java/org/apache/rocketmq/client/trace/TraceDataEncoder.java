@@ -106,6 +106,7 @@ public class TraceDataEncoder {
      * @param ctx
      * @return
      */
+    // 根据消息轨迹跟踪类型，其格式会有一些不一样，下面分别来介绍其合适。
     public static TraceTransferBean encoderFromContextBean(TraceContext ctx) {
         if (ctx == null) {
             return null;
@@ -113,7 +114,9 @@ public class TraceDataEncoder {
         //build message trace of the transfering entity content bean
         TraceTransferBean transferBean = new TraceTransferBean();
         StringBuilder sb = new StringBuilder(256);
+        // 消息轨迹数据的协议使用字符串拼接，字段的分隔符号为1，整个数据以2结尾，感觉这个设计还是有点“不可思议”，为什么不直接使用json协议呢？
         switch (ctx.getTraceType()) {
+            // 消息发送
             case Pub: {
                 TraceBean bean = ctx.getTraceBeans().get(0);
                 //append the content of context and traceBean to transferBean's TransData
@@ -133,6 +136,7 @@ public class TraceDataEncoder {
                     .append(ctx.isSuccess()).append(TraceConstants.FIELD_SPLITOR);
             }
             break;
+            // 消息消费之前
             case SubBefore: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//
@@ -146,6 +150,7 @@ public class TraceDataEncoder {
                 }
             }
             break;
+            // 消息消费后
             case SubAfter: {
                 for (TraceBean bean : ctx.getTraceBeans()) {
                     sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//

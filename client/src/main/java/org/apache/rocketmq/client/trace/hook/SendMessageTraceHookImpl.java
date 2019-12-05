@@ -40,6 +40,7 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         return "SendMessageTraceHook";
     }
 
+    // sendMessageBefore主要的用途就是在消息发送的时候，先准备一部分消息跟踪日志，存储在发送上下文环境中，此时并不会发送消息轨迹数据。
     @Override
     public void sendMessageBefore(SendMessageContext context) {
         //if it is message trace data,then it doesn't recorded
@@ -47,12 +48,14 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
             return;
         }
         //build the context content of TuxeTraceContext
+        // 在消息发送上下文中，设置用来跟踪消息轨迹的上下环境，里面主要包含一个TraceBean集合、追踪类型(TraceType.Pub)与生产者所属的组
         TraceContext tuxeContext = new TraceContext();
         tuxeContext.setTraceBeans(new ArrayList<TraceBean>(1));
         context.setMqTraceContext(tuxeContext);
         tuxeContext.setTraceType(TraceType.Pub);
         tuxeContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
         //build the data bean object of message trace
+        // 构建一条跟踪消息，用TraceBean来表示，记录原消息的topic、tags、keys、发送到broker地址、消息体长度等消息。
         TraceBean traceBean = new TraceBean();
         traceBean.setTopic(NamespaceUtil.withoutNamespace(context.getMessage().getTopic()));
         traceBean.setTags(context.getMessage().getTags());
@@ -80,8 +83,10 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
             return;
         }
 
+        // 从MqTraceContext中获取跟踪的TraceBean，虽然设计成List结构体，但在消息发送场景，这里的数据永远只有一条，即使是批量发送也不例外。
         TraceContext tuxeContext = (TraceContext) context.getMqTraceContext();
         TraceBean traceBean = tuxeContext.getTraceBeans().get(0);
+        // 获取消息发送耗时。
         int costTime = (int) ((System.currentTimeMillis() - tuxeContext.getTimeStamp()) / tuxeContext.getTraceBeans().size());
         tuxeContext.setCostTime(costTime);
         if (context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK)) {
@@ -89,10 +94,12 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         } else {
             tuxeContext.setSuccess(false);
         }
+        // 设置costTime(耗时)、success(是否发送成功)、regionId(发送到broker所在的分区)、msgId(消息ID，全局唯一)、offsetMsgId(消息物理偏移量，如果是批量消息，则是最后一条消息的物理偏移量)、storeTime，这里使用的是(客户端发送时间 + 二分之一的耗时)来表示消息的存储时间，这里是一个估值。
         tuxeContext.setRegionId(context.getSendResult().getRegionId());
         traceBean.setMsgId(context.getSendResult().getMsgId());
         traceBean.setOffsetMsgId(context.getSendResult().getOffsetMsgId());
         traceBean.setStoreTime(tuxeContext.getTimeStamp() + costTime / 2);
+        // 将需要跟踪的信息通过TraceDispatcher转发到Broker服务器。
         localDispatcher.append(tuxeContext);
     }
 }
