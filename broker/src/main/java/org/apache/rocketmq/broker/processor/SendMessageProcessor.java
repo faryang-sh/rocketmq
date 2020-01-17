@@ -184,7 +184,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
-        maxReconsumeTimes=4;
+        // 最大重试消费次数，超过则进入死信队列
+//        maxReconsumeTimes=4;
 
 
         // 0.首先判断重试次数是否大于等于16，或者消息延迟级别是否小于0--->以此来判断是否是死信队列
