@@ -26,6 +26,7 @@ import java.util.List;
 public class TraceContext implements Comparable<TraceContext> {
 
     private TraceType traceType;
+    // 初始化值为当前时间
     private long timeStamp = System.currentTimeMillis();
     private String regionId = "";
     private String regionName = "";

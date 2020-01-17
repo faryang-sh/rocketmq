@@ -132,6 +132,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // 读写权限校验
         if (!PermName.isReadable(topicConfig.getPerm())) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("the topic[" + requestHeader.getTopic() + "] pulling message is forbidden");

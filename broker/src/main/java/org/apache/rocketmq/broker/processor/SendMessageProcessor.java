@@ -67,8 +67,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                                           RemotingCommand request) throws RemotingCommandException {
         SendMessageContext mqtraceContext;
         switch (request.getCode()) {
+            // 消费者处理失败的情况(抛异常、返回非success)
             case RequestCode.CONSUMER_SEND_MSG_BACK:
                 return this.consumerSendMsgBack(ctx, request);
+            // 正常的消费者处理流程
             default:
                 SendMessageRequestHeader requestHeader = parseRequestHeader(request);
                 if (requestHeader == null) {
@@ -76,6 +78,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 }
 
                 mqtraceContext = buildMsgContext(ctx, requestHeader);
+                // 记录
                 this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
                 RemotingCommand response;
@@ -137,6 +140,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return response;
         }
 
+        // 先设置topic为retry队列
         String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
         int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % subscriptionGroupConfig.getRetryQueueNums();
 
@@ -180,11 +184,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
             maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
         }
+        maxReconsumeTimes=4;
 
+
+        // 0.首先判断重试次数是否大于等于16，或者消息延迟级别是否小于0--->以此来判断是否是死信队列
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
+            //
             newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
             queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
+
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                 DLQ_NUMS_PER_GROUP,
@@ -203,6 +212,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             msgExt.setDelayTimeLevel(delayLevel);
         }
 
+        // 产生broker内部消息
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(newTopic);
         msgInner.setBody(msgExt.getBody());
