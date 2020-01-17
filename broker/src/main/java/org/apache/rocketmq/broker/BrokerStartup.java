@@ -141,6 +141,9 @@ public class BrokerStartup {
             }
 
             MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
+            // 测试过程中，自定义测试配置参数
+            // 配置nameServer
+//            brokerConfig.setNamesrvAddr("127.0.0.1:9876");
 
             if (null == brokerConfig.getRocketmqHome()) {
                 System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation", MixAll.ROCKETMQ_HOME_ENV);

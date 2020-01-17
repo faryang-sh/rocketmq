@@ -87,7 +87,12 @@ public class SendMessageProcessorTest {
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(mockChannel);
-        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(new MessageExt());
+        MessageExt messageExt = new MessageExt();
+
+        // 设置消费次数为4
+        // messageExt.setReconsumeTimes(4);
+
+        when(messageStore.lookMessageByOffset(anyLong())).thenReturn(messageExt);
         sendMessageProcessor = new SendMessageProcessor(brokerController);
     }
 
@@ -175,6 +180,7 @@ public class SendMessageProcessorTest {
         assertPutResult(ResponseCode.SLAVE_NOT_AVAILABLE);
     }
 
+    // 测试消息消费失败的情况
     @Test
     public void testProcessRequest_WithMsgBack() throws RemotingCommandException {
         when(messageStore.putMessage(any(MessageExtBrokerInner.class))).thenReturn(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK)));
